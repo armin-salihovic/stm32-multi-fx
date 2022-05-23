@@ -124,7 +124,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 void processData()
 {
 	for(int i = 0; i < DATA_SIZE; i++) {
-		outBuffPtr[i] = calculateTremolo(inBuffPtr[i], adc2Data[0]/4095.0f);
+		outBuffPtr[i] = calculateTremolo(inBuffPtr[i], adc2Data[0]/4095.0f, 1);
 	}
 
 

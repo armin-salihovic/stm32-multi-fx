@@ -48,13 +48,15 @@ float lfo(float phase, int waveform)
 void Tremolo_Init() {
 	tremolo.phase = 0;
 	tremolo.inverseSampleRate = 1.0f/SAMPLE_RATE;
-	tremolo.depth = 0.75;
-	tremolo.frequency = 1.25;
+	tremolo.depth = 1.0f;
+	tremolo.frequency = 3.0f;
 }
 
-uint16_t calculateTremolo(uint16_t in, float volume) {
+uint16_t calculateTremolo(uint16_t in, float depth, float frequency) {
+	tremolo.depth = depth;
+	tremolo.frequency *= frequency;
 	uint16_t out;
-	out = volume * in * (1.0f - tremolo.depth * lfo(tremolo.phase, Sine));
+	out = in * (1.0f - tremolo.depth * lfo(tremolo.phase, Square));
 
 	tremolo.phase += tremolo.frequency*tremolo.inverseSampleRate;
 	if(tremolo.phase >= 1.0)
