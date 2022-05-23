@@ -1,0 +1,2 @@
+../Core/Src/DelayEffect.c:19:6:Delay_Init	8	static
+../Core/Src/DelayEffect.c:30:10:calculateDelay	24	static
