@@ -21,6 +21,6 @@ float lfo(float phase, int waveform);
 
 void Tremolo_Init();
 
-uint16_t calculateTremolo(uint16_t in);
+uint16_t calculateTremolo(uint16_t in, float volume);
 
 #endif /* SRC_TREMOLOEFFECT_H_ */
