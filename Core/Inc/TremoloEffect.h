@@ -8,19 +8,20 @@
 #ifndef SRC_TREMOLOEFFECT_H_
 #define SRC_TREMOLOEFFECT_H_
 
+enum WaveForm { Triangle, Square, SquareSlopedEdges, Sine };
+
 typedef struct {
 	float phase;
 	float inverseSampleRate;
 	float depth;
 	float frequency;
+	int waveform;
 } TremoloEffect;
-
-enum WaveForm { Triangle, Square, SquareSlopedEdges, Sine };
 
 float lfo(float phase, int waveform);
 
 void Tremolo_Init();
 
-uint16_t calculateTremolo(uint16_t in, float depth, float frequency);
+float calculateTremolo(float in, float depth, float frequency);
 
 #endif /* SRC_TREMOLOEFFECT_H_ */

@@ -18,13 +18,13 @@ DelayEffect delay;
 
 void Delay_Init() {
 	delay.delayBufferLength = 2*SAMPLE_RATE;
-	delay.delayLength = 0.75;
+	delay.delayLength = 1.5f;
 	delay.delayWritePtr = 0;
 	delay.delayReadPtr = (int)(delay.delayWritePtr - (delay.delayLength * SAMPLE_RATE) + delay.delayBufferLength) % delay.delayBufferLength;
 	delay.delayData = (uint16_t*) malloc(delay.delayBufferLength * sizeof(uint16_t));
-	delay.feedback = 0.5;
+	delay.feedback = 0.75f;
 	delay.dryMix = 1;
-	delay.wetMix = 0.85;
+	delay.wetMix = 1;
 }
 
 uint16_t calculateDelay(uint16_t in) {
@@ -41,5 +41,20 @@ uint16_t calculateDelay(uint16_t in) {
 		delay.delayWritePtr = 0;
 
 	return out;
+}
+
+void Delay_Set_Params(float delayLength, float feedback) {
+	if(delayLength > delay.delayLength - 0.1 - 0.001 || delayLength + 0.1 < delay.delayLength - 0.001) {
+		delay.delayLength = delayLength;
+		delay.delayReadPtr = (int)(delay.delayWritePtr - (delay.delayLength * SAMPLE_RATE) + delay.delayBufferLength) % delay.delayBufferLength;
+	}
+
+	if(feedback > 0.8) feedback = 0.8;
+
+	if(feedback > delay.feedback - 0.1 - 0.001 || feedback + 0.1 < delay.feedback - 0.001) {
+		delay.feedback = feedback;
+	}
+
+
 }
 

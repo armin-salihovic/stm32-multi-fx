@@ -23,4 +23,6 @@ void Delay_Init();
 
 uint16_t Calculate_Delay_Sample(uint16_t in);
 
+void Delay_Set_Params(float delayLength, float feedback);
+
 #endif /* INC_DELAYEFFECT_H_ */

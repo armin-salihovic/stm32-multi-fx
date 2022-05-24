@@ -120,12 +120,32 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 
 }
 
+//enum Effect { Delay, Square, SquareSlopedEdges, Sine };
+
+const float INT16_TO_FLOAT = 1.0f / 32768.0f;
 
 void processData()
 {
+	float knob1 = adc2Data[0]/4095.0f;
+	float knob2 = adc2Data[1]/4095.0f;
+	Delay_Set_Params(knob1, knob2);
 	for(int i = 0; i < DATA_SIZE; i++) {
-		outBuffPtr[i] = calculateTremolo(inBuffPtr[i], adc2Data[0]/4095.0f, 1);
+		outBuffPtr[i] = calculateDelay(inBuffPtr[i], knob1, knob2);
 	}
+
+//	static float in, out;
+//	for(int i = 0; i < DATA_SIZE; i++) {
+//		in = INT16_TO_FLOAT * inBuffPtr[i];
+//		if(in > 1.0f) {
+//			in -= 2.0f;
+//		}
+//		out = calculateTremolo(in, knob1, knob2);
+//		out = in;
+//		outBuffPtr[i] = (uint16_t) (out * 32768.0f);
+//		outBuffPtr[i] = calculateDelay(inBuffPtr[i], knob1, knob2);
+//		outBuffPtr[i] =  (uint16_t) (in* 32768.0f);
+//		outBuffPtr[i] = inBuffPtr[i];
+//	}
 
 
 	dataReady = 0;
