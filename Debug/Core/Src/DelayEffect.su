@@ -1,3 +1,4 @@
-../Core/Src/DelayEffect.c:19:6:Delay_Init	8	static
-../Core/Src/DelayEffect.c:30:10:calculateDelay	24	static
-../Core/Src/DelayEffect.c:46:6:Delay_Set_Params	16	static
+../Core/Src/DelayEffect.c:18:6:Delay_Init	32	static
+../Core/Src/DelayEffect.c:38:10:Delay_Process	24	static
+../Core/Src/DelayEffect.c:54:6:Delay_Set_Params	16	static
+../Core/Src/DelayEffect.c:71:6:Delay_Free	8	static

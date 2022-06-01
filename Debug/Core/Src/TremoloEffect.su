@@ -1,3 +1,4 @@
-../Core/Src/TremoloEffect.c:18:7:lfo	16	static
-../Core/Src/TremoloEffect.c:48:6:Tremolo_Init	4	static
-../Core/Src/TremoloEffect.c:55:7:calculateTremolo	40	static
+../Core/Src/TremoloEffect.c:16:7:lfo	16	static
+../Core/Src/TremoloEffect.c:46:6:Tremolo_Init	16	static
+../Core/Src/TremoloEffect.c:56:7:Tremolo_Process	40	static
+../Core/Src/TremoloEffect.c:69:6:Tremolo_Free	8	static

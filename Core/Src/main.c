@@ -31,6 +31,8 @@
 #include <stdlib.h>
 #include "DelayEffect.h"
 #include "TremoloEffect.h"
+#include "YKChorus.h"
+#include <math.h>
 
 /* USER CODE END Includes */
 
@@ -42,11 +44,11 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 // data that user works with
-#define DATA_SIZE 128
+#define DATA_SIZE 256
 
 // the size of the entire buffer for both adc and dac
-#define BUFFER_SIZE 256
-#define SAMPLE_RATE 96000
+#define BUFFER_SIZE 512
+#define SAMPLE_RATE 96021
 #define PI 3.14159265359
 /* USER CODE END PD */
 
@@ -71,13 +73,7 @@ static volatile uint16_t* outBuffPtr;
 // data ready flag
 
 uint8_t dataReady = 0;
-
-typedef struct {
-	float volume;
-	float mix;
-} Controls;
-
-Controls controls;
+uint8_t effectReady = 1;
 
 /* USER CODE END PV */
 
@@ -120,31 +116,99 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 
 }
 
-//enum Effect { Delay, Square, SquareSlopedEdges, Sine };
+enum Effect { CleanEf, DelayEf, SineEf, SquareEf, SquareSlopedEdgesEf, TriangleEf, ChorusEf };
+uint8_t currentEffect =  ChorusEf;
 
 const float INT16_TO_FLOAT = 1.0f / 32768.0f;
 
+uint8_t Is_Tremolo() {
+	return currentEffect == SineEf || currentEffect == SquareEf || currentEffect == SquareSlopedEdgesEf || currentEffect == TriangleEf;
+}
+
 void processData()
 {
+	if(effectReady == 0) return;
+
 	float knob1 = adc2Data[0]/4095.0f;
 	float knob2 = adc2Data[1]/4095.0f;
-	Delay_Set_Params(knob1, knob2);
-	for(int i = 0; i < DATA_SIZE; i++) {
-		outBuffPtr[i] = calculateDelay(inBuffPtr[i], knob1, knob2);
+
+	if(currentEffect == CleanEf) {
+		for(int i = 0; i < DATA_SIZE; i++) {
+			 outBuffPtr[i] = inBuffPtr[i];
+		}
+	}
+	else if(currentEffect == DelayEf) {
+		Delay_Set_Params(knob1, knob2);
+		for(int i = 0; i < DATA_SIZE; i++) {
+			 outBuffPtr[i] = Delay_Process(inBuffPtr[i]);
+		}
+	} else if(Is_Tremolo()) {
+		static float in, out;
+		for(int i = 0; i < DATA_SIZE; i++) {
+			in = INT16_TO_FLOAT * inBuffPtr[i];
+			if(in > 1.0f) {
+				in -= 2.0f;
+			}
+			out = Tremolo_Process(in, knob1, knob2) * 1.4f;
+			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
+		}
+	} else if(currentEffect == ChorusEf) {
+		YKChorus_Set_Params(knob1, knob2);
+		static float in, out;
+		for(int i = 0; i < DATA_SIZE; i++) {
+//			if(in > 1.0f) {
+//				in -= 2.0f;
+//			}
+			in = INT16_TO_FLOAT * inBuffPtr[i];
+			out = in+YKChorus_Process(in);
+			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
+			continue;
+			in = INT16_TO_FLOAT * inBuffPtr[i];
+			out = in + YKChorus_Process(in);
+			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
+
+		}
 	}
 
+	// clean
+
+	// delay
+
+//	Delay_Set_Params(knob1, knob2);
+//	for(int i = 0; i < DATA_SIZE; i++) {
+//		 outBuffPtr[i] = Delay_Process(inBuffPtr[i]);
+//	}
+
+//	 tremolo
 //	static float in, out;
 //	for(int i = 0; i < DATA_SIZE; i++) {
 //		in = INT16_TO_FLOAT * inBuffPtr[i];
 //		if(in > 1.0f) {
 //			in -= 2.0f;
 //		}
-//		out = calculateTremolo(in, knob1, knob2);
-//		out = in;
+//		out = Tremolo_Process(in, knob1, knob2) * 1.4f;
 //		outBuffPtr[i] = (uint16_t) (out * 32768.0f);
-//		outBuffPtr[i] = calculateDelay(inBuffPtr[i], knob1, knob2);
-//		outBuffPtr[i] =  (uint16_t) (in* 32768.0f);
-//		outBuffPtr[i] = inBuffPtr[i];
+//	}
+
+	// ykchorus
+//	YKChorus_Set_Params(knob1, knob2);
+//	static float in, out;
+//	for(int i = 0; i < DATA_SIZE; i++) {
+//		if(in > 1.0f) {
+//			in -= 2.0f;
+//		}
+//		in = INT16_TO_FLOAT * inBuffPtr[i];
+//		out = in + YKChorus_Process(in);
+//		outBuffPtr[i] = (uint16_t) (out * 32768.0f);
+//
+//	}
+
+	// flanger test
+//	static float in, out;
+//	for(int i = 0; i < DATA_SIZE; i++) {
+//		in = INT16_TO_FLOAT * inBuffPtr[i];
+//		out = Flanger_Process(in) * 1.4f;
+//		outBuffPtr[i] = (uint16_t) (out * 32768.0f);
 //	}
 
 
@@ -199,9 +263,11 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adcData, BUFFER_SIZE);
   HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *) dacData, BUFFER_SIZE, DAC_ALIGN_12B_R);
 
-  Delay_Init();
-  Tremolo_Init();
-  uint8_t msg[30] = "\0";
+//  Delay_Init(SAMPLE_RATE);
+  YKChorus_Init(SAMPLE_RATE, 1.0f, 1.0f, 7.0f);
+//  Tremolo_Init(SAMPLE_RATE);
+//  Flanger_Init();
+//  uint8_t msg[30] = "\0";
   HAL_ADC_Start_DMA(&hadc2, (uint32_t *) adc2Data, 3);
 
   /* USER CODE END 2 */
@@ -315,6 +381,36 @@ void PeriphCommonClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if( GPIO_Pin == GPIO_PIN_13) {
+		effectReady = 0;
+
+		if(currentEffect == ChorusEf) {
+			currentEffect = 0;
+			YKChorus_Free();
+		} else if(currentEffect == DelayEf) {
+			Delay_Free();
+		} else if(currentEffect == 4) {
+			Tremolo_Free();
+		}
+
+		currentEffect++;
+
+		if(currentEffect == ChorusEf) {
+			YKChorus_Init(SAMPLE_RATE, 1.0f, 1.0f, 7.0f);
+		}
+		else if(currentEffect == DelayEf) {
+			Delay_Init(SAMPLE_RATE);
+		} else if(Is_Tremolo()) {
+			Tremolo_Init(SAMPLE_RATE);
+		}
+
+		effectReady = 1;
+	} else {
+		__NOP();
+	}
+}
 
 /* USER CODE END 4 */
 

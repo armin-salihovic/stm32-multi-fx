@@ -4,16 +4,14 @@
  *  Created on: May 22, 2022
  *      Author: Armin
  */
+#include <stdlib.h>
 #include <stdint.h>
 #include "TremoloEffect.h"
 #include <math.h>
 
-#define DATA_SIZE 128
-#define BUFFER_SIZE 256
-#define SAMPLE_RATE 96000
 #define PI 3.14159265359
 
-TremoloEffect tremolo;
+TremoloEffect* tremolo = NULL;
 
 float lfo(float phase, int waveform)
 {
@@ -45,22 +43,32 @@ float lfo(float phase, int waveform)
 		}
 }
 
-void Tremolo_Init() {
-	tremolo.phase = 0;
-	tremolo.inverseSampleRate = 1.0f/SAMPLE_RATE;
-	tremolo.depth = 1.0f;
-	tremolo.waveform = Square;
+void Tremolo_Init(int sample_rate) {
+	if(tremolo != NULL) return;
+
+	tremolo = malloc(sizeof(TremoloEffect));
+	tremolo->phase = 0;
+	tremolo->inverseSampleRate = 1.0f/sample_rate;
+	tremolo->depth = 1.0f;
+	tremolo->waveform = Triangle;
 }
 
-float calculateTremolo(float in, float depth, float frequency) {
-	tremolo.depth = depth;
-	tremolo.frequency = 3.0f*frequency;
+float Tremolo_Process(float in, float depth, float frequency) {
+	tremolo->depth = depth;
+	tremolo->frequency = 6.0f*frequency;
 	float out;
-	out = in * (1.0f - tremolo.depth * lfo(tremolo.phase, tremolo.waveform));
+	out = in * (1.0f - tremolo->depth * lfo(tremolo->phase, tremolo->waveform));
 
-	tremolo.phase += tremolo.frequency*tremolo.inverseSampleRate;
-	if(tremolo.phase >= 1.0)
-		tremolo.phase -= 1.0;
+	tremolo->phase += tremolo->frequency*tremolo->inverseSampleRate;
+	if(tremolo->phase >= 1.0)
+		tremolo->phase -= 1.0;
 
 	return out;
+}
+
+void Tremolo_Free() {
+	if(tremolo != NULL) {
+		free(tremolo);
+		tremolo = NULL;
+	}
 }
