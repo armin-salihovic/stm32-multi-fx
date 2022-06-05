@@ -7,31 +7,30 @@
  *      Author: Armin
  */
 
+#include <ChorusEffect.h>
 #include <stdlib.h>
 #include <math.h>
-#include <YKchorus.h>
 #include <OnePoleLP.h>
 
-YKChorus* chorus = NULL;
+ChorusEffect* chorus = NULL;
 
-void YKChorus_Init(int sampleRate, float phase, float rate, float delayTime) {
+void Chorus_Init(int sampleRate) {
 	if(chorus != NULL) return;
 
-	chorus = malloc(sizeof(YKChorus));
-	chorus->phase = phase;
-	chorus->rate = rate;
+	chorus = malloc(sizeof(ChorusEffect));
+	chorus->phase = 1.0f;
+	chorus->rate = 1.0f;
 	chorus->sampleRate = sampleRate;
-	chorus->delayTime = delayTime;
+	chorus->delayTime = 7.0f;
 	chorus->z1 = 0.0f;
 	chorus->sign = 0;
-	chorus->lfoPhase = phase * 2.0f - 1.0f;
+	chorus->lfoPhase = chorus->phase * 2.0f - 1.0f;
 	chorus->lfoStepSize = (4.0f * chorus->rate / chorus->sampleRate);
 	chorus->lfoSign = 1.0f;
 
 	// Compute required buffer size for desired delay and allocate it
 	// Add extra point to aid in interpolation later
-//	chorus->delayLineLength = ((int)floorf(delayTime * sampleRate * 0.001f) * 2);
-	chorus->delayLineLength = 2*sampleRate;
+	chorus->delayLineLength = ((int)floorf(chorus->delayTime * sampleRate * 0.001f) * 2);
 	chorus->delayLineStart = malloc(chorus->delayLineLength * sizeof(float));
 
 	// Set up pointers for delay line
@@ -52,7 +51,7 @@ void YKChorus_Init(int sampleRate, float phase, float rate, float delayTime) {
 	OnePoleLP_Init();
 }
 
-float Next_LFO() {
+float Chorus_LFO() {
         if (chorus->lfoPhase >= 1.0f)
         {
         	chorus->lfoSign = -1.0f;
@@ -65,16 +64,15 @@ float Next_LFO() {
         return chorus->lfoPhase;
     }
 
-float YKChorus_Process(float sample) {
+float Chorus_Process(float sample) {
 	// Get delay time
-	chorus->offset = (Next_LFO() * 0.3f + 0.4f) * chorus->delayTime * chorus->sampleRate * 0.001f;
+	chorus->offset = (Chorus_LFO() * 0.3f + 0.4f) * chorus->delayTime * chorus->sampleRate * 0.001f;
+	int offset = (int)floorf(chorus->offset);
 
 	// Compute the largest read pointer based on the offset.  If ptr
 	// is before the first delayline location, wrap around end point
 
-	chorus->ptr = chorus->writePtr - (int)floorf(chorus->offset);
-//	chorus->ptr = chorus->writePtr - 5;
-//	return sample;
+	chorus->ptr = chorus->writePtr - offset;
 
 	if (chorus->ptr < chorus->delayLineStart)
 		chorus->ptr += chorus->delayLineLength;
@@ -83,8 +81,7 @@ float YKChorus_Process(float sample) {
 	if (chorus->ptr2 < chorus->delayLineStart)
 		chorus->ptr2 += chorus->delayLineLength;
 
-	chorus->frac = chorus->offset - (int)floorf(chorus->offset);
-//	chorus->frac = chorus->offset - 5;
+	chorus->frac = chorus->offset - offset;
 	chorus->delayLineOutput = *chorus->ptr2 + *chorus->ptr * (1 - chorus->frac) - (1 - chorus->frac) * chorus->z1;
 	chorus->z1 = chorus->delayLineOutput;
 
@@ -101,21 +98,14 @@ float YKChorus_Process(float sample) {
 	return chorus->delayLineOutput;
 }
 
-void YKChorus_Set_Params(float rate, float phase) {
+void Chorus_Set_Params(float rate) {
 	if(rate - 0.1 > chorus->rate - 0.01  || rate + 0.1 < chorus->rate + 0.01) {
 		chorus->rate = rate;
 		chorus->lfoStepSize = (4.0f * chorus->rate / chorus->sampleRate);
 	}
-
-
-//	if(phase - 0.1 > chorus->phase - 0.01  || phase + 0.1 < chorus->phase + 0.01) {
-//		chorus->phase = phase;
-//		chorus->lfoPhase = phase * 2.0f - 1.0f;
-//	}
-
 }
 
-void YKChorus_Free() {
+void Chorus_Free() {
 	if(chorus != NULL) {
 		free(chorus->delayLineStart);
 		free(chorus);

@@ -1,7 +1,7 @@
+"./Core/Src/ChorusEffect.o"
 "./Core/Src/DelayEffect.o"
 "./Core/Src/OnePoleLP.o"
 "./Core/Src/TremoloEffect.o"
-"./Core/Src/YKChorus.o"
 "./Core/Src/adc.o"
 "./Core/Src/dac.o"
 "./Core/Src/dma.o"

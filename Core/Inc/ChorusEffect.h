@@ -1,5 +1,5 @@
 /*
- * YKChorus.h
+ * ChorusEffect.h
  *
  * Code inspired by: https://github.com/SpotlightKid/ykchorus
  *
@@ -7,8 +7,8 @@
  *      Author: Armin
  */
 
-#ifndef INC_YKCHORUS_H_
-#define INC_YKCHORUS_H_
+#ifndef INC_CHORUSEFFECT_H_
+#define INC_CHORUSEFFECT_H_
 
 typedef struct {
 	float *delayLineStart;
@@ -34,16 +34,16 @@ typedef struct {
 	float lfoPhase, lfoStepSize, lfoSign;
 
 	float phase;
-} YKChorus;
+} ChorusEffect;
 
-void YKChorus_Init(int sampleRate, float phase, float rate, float delayTime);
+void Chorus_Init(int sampleRate);
 
-float Next_LFO();
+float Chorus_LFO();
 
-float YKChorus_Process(float sample);
+float Chorus_Process(float sample);
 
-void YKChorus_Set_Params(float rate, float depth);
+void Chorus_Set_Params(float rate);
 
-void YKChorus_Free();
+void Chorus_Free();
 
-#endif /* INC_YKCHORUS_H_ */
+#endif /* INC_CHORUSEFFECT_H_ */

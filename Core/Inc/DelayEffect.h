@@ -17,13 +17,15 @@ typedef struct {
 	float feedback;
 	float dryMix;
 	float wetMix;
-	int sample_rate;
+	int sampleRate;
 } DelayEffect;
 
-void Delay_Init(int sample_rate);
+void Delay_Init(int sampleRate);
 
 uint16_t Delay_Process(uint16_t in);
 
 void Delay_Set_Params(float delayLength, float feedback);
+
+void Delay_Free();
 
 #endif /* INC_DELAYEFFECT_H_ */

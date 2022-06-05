@@ -1,5 +1,0 @@
-../Core/Src/YKChorus.c:17:6:YKChorus_Init	32	static
-../Core/Src/YKChorus.c:55:7:Next_LFO	4	static
-../Core/Src/YKChorus.c:68:7:YKChorus_Process	32	static
-../Core/Src/YKChorus.c:104:6:YKChorus_Set_Params	16	static
-../Core/Src/YKChorus.c:118:6:YKChorus_Free	8	static

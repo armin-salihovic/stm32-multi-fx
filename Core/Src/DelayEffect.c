@@ -15,12 +15,12 @@
 
 DelayEffect* delay = NULL;
 
-void Delay_Init(int sample_rate) {
+void Delay_Init(int sampleRate) {
 	if(delay != NULL) return;
 
 	delay = malloc(sizeof(DelayEffect));
-	delay->sample_rate = sample_rate;
-	delay->delayBufferLength = 2*sample_rate;
+	delay->sampleRate = sampleRate;
+	delay->delayBufferLength = 2*sampleRate;
 	delay->delayLength = 0.75f;
 	delay->delayWritePtr = 0;
 	delay->delayReadPtr = 0;
@@ -58,7 +58,7 @@ void Delay_Set_Params(float delayLength, float feedback) {
 
 	if(delayLength - 0.1 > delay->delayLength - 0.01  || delayLength + 0.1 < delay->delayLength + 0.01) {
 		delay->delayLength = delayLength;
-		delay->delayReadPtr = (int)(delay->delayWritePtr - (delay->delayLength * delay->sample_rate) + delay->delayBufferLength) % delay->delayBufferLength;
+		delay->delayReadPtr = (int)(delay->delayWritePtr - (delay->delayLength * delay->sampleRate) + delay->delayBufferLength) % delay->delayBufferLength;
 	}
 
 	if(feedback > 0.8) feedback = 0.8;

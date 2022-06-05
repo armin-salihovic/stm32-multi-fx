@@ -17,6 +17,7 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
+#include <ChorusEffect.h>
 #include "main.h"
 #include "adc.h"
 #include "dac.h"
@@ -31,7 +32,6 @@
 #include <stdlib.h>
 #include "DelayEffect.h"
 #include "TremoloEffect.h"
-#include "YKChorus.h"
 #include <math.h>
 
 /* USER CODE END Includes */
@@ -88,11 +88,11 @@ void PeriphCommonClock_Config(void);
 /* USER CODE BEGIN 0 */
 
 
+// when we enter this function, first half of the buffer is complete
+// so we set the input buffer pointer at the beginning
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
 	if(hadc == &hadc1) {
-		// when we enter this function, first half of the buffer is complete
-		// so we set the input buffer pointer at the beginning
 		inBuffPtr = &adcData[0];
 		outBuffPtr = &dacData[DATA_SIZE];
 
@@ -101,13 +101,12 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 
 }
 
+// when we enter this function, first half of the buffer is complete
+// so we set the input buffer pointer at the beginning
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
 
 	if(hadc == &hadc1) {
-		// when we enter this function, first half of the buffer is complete
-		// so we set the input buffer pointer at the beginning
-
 		inBuffPtr = &adcData[DATA_SIZE];
 		outBuffPtr = &dacData[0];
 
@@ -116,15 +115,20 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 
 }
 
-enum Effect { CleanEf, DelayEf, SineEf, SquareEf, SquareSlopedEdgesEf, TriangleEf, ChorusEf };
+enum Effect { CleanEf, DelayEf, SineEf, SquareEf, TriangleEf, ChorusEf };
 uint8_t currentEffect =  ChorusEf;
 
 const float INT16_TO_FLOAT = 1.0f / 32768.0f;
 
 uint8_t Is_Tremolo() {
-	return currentEffect == SineEf || currentEffect == SquareEf || currentEffect == SquareSlopedEdgesEf || currentEffect == TriangleEf;
+	return currentEffect == SineEf || currentEffect == SquareEf || currentEffect == TriangleEf;
 }
 
+void Init_Tremolo_Waveform() {
+	if(currentEffect == SineEf) Tremolo_Set_Waveform(Sine);
+	else if(currentEffect == SquareEf) Tremolo_Set_Waveform(Square);
+	else if(currentEffect == TriangleEf) Tremolo_Set_Waveform(Triangle);
+}
 void processData()
 {
 	if(effectReady == 0) return;
@@ -143,6 +147,8 @@ void processData()
 			 outBuffPtr[i] = Delay_Process(inBuffPtr[i]);
 		}
 	} else if(Is_Tremolo()) {
+		Init_Tremolo_Waveform();
+
 		static float in, out;
 		for(int i = 0; i < DATA_SIZE; i++) {
 			in = INT16_TO_FLOAT * inBuffPtr[i];
@@ -153,18 +159,18 @@ void processData()
 			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
 		}
 	} else if(currentEffect == ChorusEf) {
-		YKChorus_Set_Params(knob1, knob2);
+		Chorus_Set_Params(knob1);
 		static float in, out;
 		for(int i = 0; i < DATA_SIZE; i++) {
 //			if(in > 1.0f) {
 //				in -= 2.0f;
 //			}
 			in = INT16_TO_FLOAT * inBuffPtr[i];
-			out = in+YKChorus_Process(in);
+			out = in+Chorus_Process(in);
 			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
 			continue;
 			in = INT16_TO_FLOAT * inBuffPtr[i];
-			out = in + YKChorus_Process(in);
+			out = in + Chorus_Process(in);
 			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
 
 		}
@@ -264,10 +270,9 @@ int main(void)
   HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *) dacData, BUFFER_SIZE, DAC_ALIGN_12B_R);
 
 //  Delay_Init(SAMPLE_RATE);
-  YKChorus_Init(SAMPLE_RATE, 1.0f, 1.0f, 7.0f);
+  Chorus_Init(SAMPLE_RATE);
 //  Tremolo_Init(SAMPLE_RATE);
 //  Flanger_Init();
-//  uint8_t msg[30] = "\0";
   HAL_ADC_Start_DMA(&hadc2, (uint32_t *) adc2Data, 3);
 
   /* USER CODE END 2 */
@@ -279,9 +284,6 @@ int main(void)
 	  if(dataReady) {
 		  processData();
 	  }
-//	  sprintf(msg, "HAL9 %d", adc2Data[0]);
-//	    HAL_UART_Transmit(&huart3, msg, 3, HAL_MAX_DELAY);
-//	    HAL_Delay(20);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -388,7 +390,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
 		if(currentEffect == ChorusEf) {
 			currentEffect = 0;
-			YKChorus_Free();
+			Chorus_Free();
 		} else if(currentEffect == DelayEf) {
 			Delay_Free();
 		} else if(currentEffect == 4) {
@@ -398,7 +400,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		currentEffect++;
 
 		if(currentEffect == ChorusEf) {
-			YKChorus_Init(SAMPLE_RATE, 1.0f, 1.0f, 7.0f);
+			Chorus_Init(SAMPLE_RATE);
 		}
 		else if(currentEffect == DelayEf) {
 			Delay_Init(SAMPLE_RATE);

@@ -1,4 +1,5 @@
-../Core/Src/TremoloEffect.c:16:7:lfo	16	static
-../Core/Src/TremoloEffect.c:46:6:Tremolo_Init	16	static
-../Core/Src/TremoloEffect.c:56:7:Tremolo_Process	40	static
-../Core/Src/TremoloEffect.c:69:6:Tremolo_Free	8	static
+../Core/Src/TremoloEffect.c:16:7:Tremolo_LFO	16	static
+../Core/Src/TremoloEffect.c:37:6:Tremolo_Init	16	static
+../Core/Src/TremoloEffect.c:47:7:Tremolo_Process	40	static
+../Core/Src/TremoloEffect.c:60:6:Tremolo_Set_Waveform	16	static
+../Core/Src/TremoloEffect.c:64:6:Tremolo_Free	8	static
