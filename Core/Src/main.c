@@ -94,21 +94,20 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 {
 	if(hadc == &hadc1) {
 		inBuffPtr = &adcData[0];
-		outBuffPtr = &dacData[DATA_SIZE];
+		outBuffPtr = &dacData[0];
 
 		dataReady = 1;
 	}
 
 }
 
-// when we enter this function, first half of the buffer is complete
+// when we enter this function, first the second half of the buffer is complete
 // so we set the input buffer pointer at the beginning
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-
 	if(hadc == &hadc1) {
 		inBuffPtr = &adcData[DATA_SIZE];
-		outBuffPtr = &dacData[0];
+		outBuffPtr = &dacData[DATA_SIZE];
 
 		dataReady = 1;
 	}
@@ -129,22 +128,24 @@ void Init_Tremolo_Waveform() {
 	else if(currentEffect == SquareEf) Tremolo_Set_Waveform(Square);
 	else if(currentEffect == TriangleEf) Tremolo_Set_Waveform(Triangle);
 }
+
 void processData()
 {
 	if(effectReady == 0) return;
 
-	float knob1 = adc2Data[0]/4095.0f;
-	float knob2 = adc2Data[1]/4095.0f;
+	float volume = adc2Data[0]/4095.0f;
+	float knob1 = adc2Data[1]/4095.0f;
+	float knob2 = adc2Data[2]/4095.0f;
 
 	if(currentEffect == CleanEf) {
 		for(int i = 0; i < DATA_SIZE; i++) {
-			 outBuffPtr[i] = inBuffPtr[i];
+			 outBuffPtr[i] = (uint16_t) (volume * inBuffPtr[i]);
 		}
 	}
 	else if(currentEffect == DelayEf) {
 		Delay_Set_Params(knob1, knob2);
 		for(int i = 0; i < DATA_SIZE; i++) {
-			 outBuffPtr[i] = Delay_Process(inBuffPtr[i]);
+			 outBuffPtr[i] = (uint16_t) (volume * Delay_Process(inBuffPtr[i]));
 		}
 	} else if(Is_Tremolo()) {
 		Init_Tremolo_Waveform();
@@ -152,71 +153,18 @@ void processData()
 		static float in, out;
 		for(int i = 0; i < DATA_SIZE; i++) {
 			in = INT16_TO_FLOAT * inBuffPtr[i];
-			if(in > 1.0f) {
-				in -= 2.0f;
-			}
 			out = Tremolo_Process(in, knob1, knob2) * 1.4f;
-			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
+			outBuffPtr[i] =  (uint16_t) (volume * out * 32768.0f);
 		}
 	} else if(currentEffect == ChorusEf) {
 		Chorus_Set_Params(knob1);
 		static float in, out;
 		for(int i = 0; i < DATA_SIZE; i++) {
-//			if(in > 1.0f) {
-//				in -= 2.0f;
-//			}
-			in = INT16_TO_FLOAT * inBuffPtr[i];
-			out = in+Chorus_Process(in);
-			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
-			continue;
 			in = INT16_TO_FLOAT * inBuffPtr[i];
 			out = in + Chorus_Process(in);
-			outBuffPtr[i] = (uint16_t) (out * 32768.0f);
-
+			outBuffPtr[i] = (uint16_t) (volume * out * 32768.0f);
 		}
 	}
-
-	// clean
-
-	// delay
-
-//	Delay_Set_Params(knob1, knob2);
-//	for(int i = 0; i < DATA_SIZE; i++) {
-//		 outBuffPtr[i] = Delay_Process(inBuffPtr[i]);
-//	}
-
-//	 tremolo
-//	static float in, out;
-//	for(int i = 0; i < DATA_SIZE; i++) {
-//		in = INT16_TO_FLOAT * inBuffPtr[i];
-//		if(in > 1.0f) {
-//			in -= 2.0f;
-//		}
-//		out = Tremolo_Process(in, knob1, knob2) * 1.4f;
-//		outBuffPtr[i] = (uint16_t) (out * 32768.0f);
-//	}
-
-	// ykchorus
-//	YKChorus_Set_Params(knob1, knob2);
-//	static float in, out;
-//	for(int i = 0; i < DATA_SIZE; i++) {
-//		if(in > 1.0f) {
-//			in -= 2.0f;
-//		}
-//		in = INT16_TO_FLOAT * inBuffPtr[i];
-//		out = in + YKChorus_Process(in);
-//		outBuffPtr[i] = (uint16_t) (out * 32768.0f);
-//
-//	}
-
-	// flanger test
-//	static float in, out;
-//	for(int i = 0; i < DATA_SIZE; i++) {
-//		in = INT16_TO_FLOAT * inBuffPtr[i];
-//		out = Flanger_Process(in) * 1.4f;
-//		outBuffPtr[i] = (uint16_t) (out * 32768.0f);
-//	}
-
 
 	dataReady = 0;
 }
@@ -385,7 +333,7 @@ void PeriphCommonClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if( GPIO_Pin == GPIO_PIN_13) {
+	if(GPIO_Pin == GPIO_PIN_13) {
 		effectReady = 0;
 
 		if(currentEffect == ChorusEf) {
