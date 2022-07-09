@@ -17,11 +17,11 @@
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <ChorusEffect.h>
 #include "main.h"
 #include "adc.h"
 #include "dac.h"
 #include "dma.h"
+#include "i2c.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_otg.h"
@@ -32,7 +32,9 @@
 #include <stdlib.h>
 #include "DelayEffect.h"
 #include "TremoloEffect.h"
+#include "ChorusEffect.h"
 #include <math.h>
+#include "i2c-lcd.h"
 
 /* USER CODE END Includes */
 
@@ -115,7 +117,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 }
 
 enum Effect { CleanEf, DelayEf, SineEf, SquareEf, TriangleEf, ChorusEf };
-uint8_t currentEffect =  ChorusEf;
+uint8_t currentEffect =  CleanEf;
+enum Direction { Left, Right };
 
 const float INT16_TO_FLOAT = 1.0f / 32768.0f;
 
@@ -131,7 +134,10 @@ void Init_Tremolo_Waveform() {
 
 void processData()
 {
-	if(effectReady == 0) return;
+	if(effectReady == 0) {
+		return;
+		HAL_Delay(100);
+	}
 
 	float volume = adc2Data[0]/4095.0f;
 	float knob1 = adc2Data[1]/4095.0f;
@@ -167,6 +173,92 @@ void processData()
 	}
 
 	dataReady = 0;
+}
+
+void initEffect(uint8_t effect, uint8_t direction) {
+	if(effect == ChorusEf && direction == Right) {
+		Tremolo_Free();
+		Chorus_Init(SAMPLE_RATE);
+	} else if(effect == TriangleEf && direction == Left ) {
+		Tremolo_Init(SAMPLE_RATE);
+	} else if(effect == SineEf && direction == Right) {
+		Delay_Free();
+		Tremolo_Init(SAMPLE_RATE);
+	} else if(effect == DelayEf && direction == Right) {
+		Delay_Init(SAMPLE_RATE);
+	} else if(effect == DelayEf && direction == Left) {
+		Delay_Free();
+		Delay_Init(SAMPLE_RATE);
+	} else if(effect == CleanEf && direction == Left) {
+		Delay_Free();
+	}
+}
+
+void changeEffect(uint8_t direction) {
+	if(currentEffect == ChorusEf && direction == Right) return;
+	if(currentEffect == CleanEf && direction == Left) return;
+
+	effectReady = 0;
+
+	if(direction == Right) {
+		currentEffect++;
+	} else {
+		currentEffect--;
+	}
+
+	initEffect(currentEffect, direction);
+	effectReady = 1;
+}
+
+uint8_t MSG[50] = {'\0'};
+
+void displayEffect(uint8_t effect) {
+	lcd_clear();
+//	lcd_put_cur(0,0);
+//	sprintf(MSG, "%d\n\n\r", effect);
+//	lcd_send_string(MSG);
+	lcd_put_cur(1,0);
+	if(effect == ChorusEf) {
+		lcd_send_string("Chorus");
+	} else if(effect == DelayEf) {
+		lcd_send_string("Delay");
+	} else if(effect == SineEf) {
+		lcd_send_string("Tremolo: Sine");
+	} else if(effect == TriangleEf) {
+		lcd_send_string("Tremolo: Triangle");
+	} else if(effect == SquareEf) {
+		lcd_send_string("Tremolo: Square");
+	} else if(effect == CleanEf) {
+		lcd_send_string("Clean");
+	}
+}
+
+int32_t counter = 0;
+int32_t counterOld = 0;
+
+uint8_t encoderDirection = -1;
+uint8_t triggerChange = 0;
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if(htim == &htim4) {
+		uint16_t ctr = __HAL_TIM_GET_COUNTER(&htim3);
+
+		if(counterOld > ctr) {
+			encoderDirection = Left;
+			triggerChange = 1;
+		} else if (counterOld < ctr) {
+			encoderDirection = Right;
+			triggerChange = 1;
+		} else {
+			triggerChange = 0;
+		}
+		if(triggerChange) {
+			changeEffect(encoderDirection);
+			displayEffect(currentEffect);
+
+			counterOld = ctr;
+		}
+	}
 }
 
 /* USER CODE END 0 */
@@ -210,6 +302,9 @@ int main(void)
   MX_DAC1_Init();
   MX_ADC2_Init();
   MX_TIM1_Init();
+  MX_I2C2_Init();
+  MX_TIM4_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim1);
   HAL_TIM_Base_Start(&htim6);
@@ -218,10 +313,28 @@ int main(void)
   HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t *) dacData, BUFFER_SIZE, DAC_ALIGN_12B_R);
 
 //  Delay_Init(SAMPLE_RATE);
-  Chorus_Init(SAMPLE_RATE);
+//  Chorus_Init(SAMPLE_RATE);
 //  Tremolo_Init(SAMPLE_RATE);
 //  Flanger_Init();
   HAL_ADC_Start_DMA(&hadc2, (uint32_t *) adc2Data, 3);
+
+  lcd_init();
+    lcd_send_string("Guitar Multi-FX");
+
+    HAL_Delay(1000);
+
+    lcd_put_cur(1,0);
+    lcd_send_string("v1.1 [SSST 2022]");
+
+    HAL_Delay(1000);
+
+    HAL_TIM_Encoder_Start_IT(&htim3, TIM_CHANNEL_ALL);
+
+    HAL_TIM_Base_Start_IT(&htim4);
+
+    lcd_clear();
+    displayEffect(currentEffect);
+
 
   /* USER CODE END 2 */
 
