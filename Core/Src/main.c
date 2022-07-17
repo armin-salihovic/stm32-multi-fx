@@ -23,8 +23,6 @@
 #include "dma.h"
 #include "i2c.h"
 #include "tim.h"
-#include "usart.h"
-#include "usb_otg.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -294,9 +292,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART3_UART_Init();
   MX_DMA_Init();
-  MX_USB_OTG_HS_USB_Init();
   MX_ADC1_Init();
   MX_TIM6_Init();
   MX_DAC1_Init();
@@ -324,7 +320,7 @@ int main(void)
     HAL_Delay(1000);
 
     lcd_put_cur(1,0);
-    lcd_send_string("v1.1 [SSST 2022]");
+    lcd_send_string("v1.0 [SSST 2022]");
 
     HAL_Delay(1000);
 
@@ -378,11 +374,9 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_LSI
-                              |RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 1;
